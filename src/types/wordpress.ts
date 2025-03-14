@@ -2,12 +2,9 @@ export interface WordPressSite {
   id: string
   name: string
   url: string
-  apiUrl: string
-  status: 'active' | 'inactive' | 'error'
-  credentials?: {
-    clientId: string
-    clientSecret: string
-  }
+  token: string
+  user: WordPressUser
+  status: 'active' | 'error' | 'pending'
 }
 
 export interface WordPressConnectionCredentials {
@@ -90,23 +87,23 @@ export interface WordPressPost {
   id: number
   title: {
     rendered: string
-    raw: string
+    raw?: string
   }
   content: {
     rendered: string
-    raw: string
+    raw?: string
   }
   excerpt: {
     rendered: string
-    raw: string
+    raw?: string
   }
-  status: 'publish' | 'draft' | 'private' | 'trash'
-  type: 'post' | 'page'
-  author: number
-  categories: number[]
-  tags: number[]
+  status: string
   date: string
   modified: string
+  author: number
+  featured_media: number
+  categories: number[]
+  tags: number[]
   slug: string
   link: string
 }
@@ -120,12 +117,13 @@ export interface WordPressPage extends Omit<WordPressPost, "categories" | "tags"
 // WordPress User type
 export interface WordPressUser {
   id: number
+  username: string
   name: string
   email: string
   roles: string[]
-  avatarUrl?: string
-  registered: string
-  status: 'active' | 'inactive'
+  avatar_urls?: {
+    [key: string]: string
+  }
 }
 
 // WordPress Plugin type
@@ -268,6 +266,7 @@ export interface WordPressCategory {
   description: string
   parent: number
   count: number
+  link: string
 }
 
 export interface WordPressTag {
@@ -276,6 +275,7 @@ export interface WordPressTag {
   slug: string
   description: string
   count: number
+  link: string
 }
 
 export interface WordPressMedia {
@@ -284,11 +284,62 @@ export interface WordPressMedia {
     rendered: string
   }
   source_url: string
-  media_type: 'image' | 'video' | 'audio' | 'application'
+  media_type: string
   mime_type: string
   alt_text: string
   caption: {
     rendered: string
   }
+  description: {
+    rendered: string
+  }
+  media_details: {
+    width: number
+    height: number
+    sizes?: {
+      [key: string]: {
+        file: string
+        width: number
+        height: number
+        mime_type: string
+        source_url: string
+      }
+    }
+  }
+}
+
+export interface WordPressComment {
+  id: number
+  post: number
+  parent: number
+  author: number
+  author_name: string
+  author_url: string
+  date: string
+  content: {
+    rendered: string
+  }
+  status: string
+  type: string
+}
+
+export interface PaginatedResponse<T> {
+  data: T[]
+  total: number
+  totalPages: number
+  currentPage: number
+  perPage: number
+}
+
+export interface ApiResponse<T> {
+  data: T
+  success: boolean
+  message?: string
+}
+
+export interface ApiError {
+  code: string
+  message: string
+  data?: any
 }
 

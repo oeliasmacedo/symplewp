@@ -1,7 +1,6 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useState, useEffect } from "react"
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import type {
   WordPressSite,
   WordPressConnectionCredentials,
@@ -21,6 +20,7 @@ import { toast } from "@/hooks/use-toast"
 interface WordPressContextType {
   sites: WordPressSite[]
   currentSite: WordPressSite | null
+  currentUser: WordPressUser | null
   isConnecting: boolean
   isLoading: boolean
   posts: WordPressPost[]
@@ -46,11 +46,18 @@ interface WordPressContextType {
   fetchLessons: (courseId?: number) => Promise<WordPressLesson[]>
   fetchQuizzes: (courseId?: number) => Promise<WordPressQuiz[]>
   getContentOverview: () => ContentOverview
+  setSites: (sites: WordPressSite[]) => void
+  setCurrentSite: (site: WordPressSite | null) => void
+  setCurrentUser: (user: WordPressUser | null) => void
+  addSite: (site: WordPressSite) => void
+  removeSite: (siteId: string) => void
+  updateSite: (site: WordPressSite) => void
+  error: string | null
 }
 
 const WordPressContext = createContext<WordPressContextType | undefined>(undefined)
 
-export const useWordPress = () => {
+export function useWordPress() {
   const context = useContext(WordPressContext)
   if (context === undefined) {
     throw new Error("useWordPress must be used within a WordPressProvider")
@@ -58,14 +65,13 @@ export const useWordPress = () => {
   return context
 }
 
-export const WordPressProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [sites, setSites] = useState<WordPressSite[]>(() => {
-    const savedSites = localStorage.getItem("wordpressSites")
-    return savedSites ? JSON.parse(savedSites) : []
-  })
+export function WordPressProvider({ children }: { children: React.ReactNode }) {
+  const [sites, setSites] = useState<WordPressSite[]>([])
   const [currentSite, setCurrentSite] = useState<WordPressSite | null>(null)
+  const [currentUser, setCurrentUser] = useState<WordPressUser | null>(null)
   const [isConnecting, setIsConnecting] = useState(false)
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   const [posts, setPosts] = useState<WordPressPost[]>([])
   const [pages, setPages] = useState<WordPressPage[]>([])
@@ -78,22 +84,40 @@ export const WordPressProvider: React.FC<{ children: React.ReactNode }> = ({ chi
   const [quizzes, setQuizzes] = useState<WordPressQuiz[]>([])
 
   useEffect(() => {
-    localStorage.setItem("wordpressSites", JSON.stringify(sites))
-
-    if (sites.length > 0 && !currentSite) {
-      setCurrentSite(sites[0])
+    // Carregar sites salvos do localStorage
+    const loadSavedSites = () => {
+      try {
+        const savedSites = localStorage.getItem('wp_sites')
+        const savedCurrentSite = localStorage.getItem('wp_current_site')
+        
+        if (savedSites) {
+          setSites(JSON.parse(savedSites))
+        }
+        
+        if (savedCurrentSite) {
+          setCurrentSite(JSON.parse(savedCurrentSite))
+        }
+        
+        setIsLoading(false)
+      } catch (err) {
+        setError('Erro ao carregar sites salvos')
+        setIsLoading(false)
+      }
     }
+
+    loadSavedSites()
+  }, [])
+
+  // Salvar sites no localStorage quando houver mudanças
+  useEffect(() => {
+    localStorage.setItem('wp_sites', JSON.stringify(sites))
   }, [sites])
 
   useEffect(() => {
     if (currentSite) {
-      fetchPosts()
-      fetchPages()
-      fetchUsers()
-      fetchPlugins()
-      fetchThemes()
-      fetchCourses()
-      fetchStudents()
+      localStorage.setItem('wp_current_site', JSON.stringify(currentSite))
+    } else {
+      localStorage.removeItem('wp_current_site')
     }
   }, [currentSite])
 
@@ -564,38 +588,66 @@ export const WordPressProvider: React.FC<{ children: React.ReactNode }> = ({ chi
     }
   }
 
+  const addSite = (site: WordPressSite) => {
+    setSites((prev) => [...prev, site])
+  }
+
+  const removeSite = (siteId: string) => {
+    setSites((prev) => prev.filter((site) => site.id !== siteId))
+    if (currentSite?.id === siteId) {
+      setCurrentSite(null)
+    }
+  }
+
+  const updateSite = (updatedSite: WordPressSite) => {
+    setSites((prev) => prev.map(site => 
+      site.id === updatedSite.id ? updatedSite : site
+    ))
+    if (currentSite?.id === updatedSite.id) {
+      setCurrentSite(updatedSite)
+    }
+  }
+
+  const value = {
+    sites,
+    currentSite,
+    currentUser,
+    isConnecting,
+    isLoading,
+    posts,
+    pages,
+    users,
+    plugins,
+    themes,
+    courses,
+    students,
+    lessons,
+    quizzes,
+    connectSite,
+    disconnectSite,
+    switchSite,
+    testConnection,
+    fetchPosts,
+    fetchPages,
+    fetchUsers,
+    fetchPlugins,
+    fetchThemes,
+    fetchCourses,
+    fetchStudents,
+    fetchLessons,
+    fetchQuizzes,
+    getContentOverview,
+    setSites,
+    setCurrentSite,
+    setCurrentUser,
+    addSite,
+    removeSite,
+    updateSite,
+    error,
+  }
+
   return (
-    <WordPressContext.Provider
-      value={{
-        sites,
-        currentSite,
-        isConnecting,
-        isLoading,
-        posts,
-        pages,
-        users,
-        plugins,
-        themes,
-        courses,
-        students,
-        lessons,
-        quizzes,
-        connectSite,
-        disconnectSite,
-        switchSite,
-        testConnection,
-        fetchPosts,
-        fetchPages,
-        fetchUsers,
-        fetchPlugins,
-        fetchThemes,
-        fetchCourses,
-        fetchStudents,
-        fetchLessons,
-        fetchQuizzes,
-        getContentOverview,
-      }}
-    >
+    <WordPressContext.Provider value={value}>
       {children}
     </WordPressContext.Provider>
   )

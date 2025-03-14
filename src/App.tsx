@@ -9,6 +9,8 @@ import UserManager from "./pages/UserManager"
 import LMSManager from "./pages/LMSManager"
 import NotFound from "./pages/NotFound"
 import { WordPressProvider } from "./contexts/WordPressContext"
+import { ProtectedRoute } from './components/auth/ProtectedRoute'
+import LoginPage from './pages/Login'
 
 const queryClient = new QueryClient()
 
@@ -20,10 +22,42 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
-            <Route path="/" element={<Dashboard />} />
-            <Route path="/content" element={<ContentManager />} />
-            <Route path="/users" element={<UserManager />} />
-            <Route path="/lms" element={<LMSManager />} />
+            {/* Rotas públicas */}
+            <Route path="/login" element={<LoginPage />} />
+
+            {/* Rotas protegidas */}
+            <Route
+              path="/"
+              element={
+                <ProtectedRoute>
+                  <Dashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/content"
+              element={
+                <ProtectedRoute>
+                  <ContentManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/users"
+              element={
+                <ProtectedRoute>
+                  <UserManager />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/lms"
+              element={
+                <ProtectedRoute>
+                  <LMSManager />
+                </ProtectedRoute>
+              }
+            />
             {/* Add additional routes as they're implemented */}
             {/* <Route path="/statistics" element={<Statistics />} /> */}
             {/* <Route path="/backups" element={<Backups />} /> */}
